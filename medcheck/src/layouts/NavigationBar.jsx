@@ -27,7 +27,7 @@ export default function NavigationBar() {
     <nav className="bg-white h-20 w-full flex items-center justify-center relative">
       <div className="flex items-center justify-between w-full max-w-7xl px-4 sm:px-6 lg:px-12">
         
-        <div className="absolute left-5 top-4 z-20"> 
+        <div className="absolute left-7 top-4 z-20"> 
           <Link to="/home">
             <img
               src="/logo.png"
