@@ -62,7 +62,7 @@ export default function NavigationBar() {
                   className="
                   md:grid              
                   md:grid-cols-       
-                  gap-3 
+                  gap-4 
                   p-4 
                   w-90vw            
                   max-w-100       
