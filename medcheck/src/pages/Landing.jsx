@@ -1,4 +1,4 @@
-import { NavigationBar, FirstHero } from "@/layouts"
+import { NavigationBar, FirstHero, SecondHero } from "@/layouts"
 
 export default function Landing() {
   return <>
@@ -8,6 +8,7 @@ export default function Landing() {
   </header>
   <main className="relative z-0">
   <FirstHero></FirstHero>
+  <SecondHero></SecondHero>
   </main>
   </>
 }

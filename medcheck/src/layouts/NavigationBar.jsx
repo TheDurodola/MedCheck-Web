@@ -26,17 +26,20 @@ export default function NavigationBar() {
   return (
     <nav className="bg-white h-20 w-full flex items-center justify-center relative">
       <div className="flex items-center justify-between w-full max-w-7xl px-4 sm:px-6 lg:px-12">
-        <Link to="/">
-          <img
-            src="/logo.png"
-            alt="MedCheck Logo"
-            className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 object-contain"
-          />
-        </Link>
+        
+        <div className="absolute left-5 top-4 z-20"> 
+          <Link to="/home">
+            <img
+              src="/logo.png"
+              alt="MedCheck Logo"
+              className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 object-contain"
+            />
+          </Link>
+        </div>
 
-        <div className="relative z-50">
+        <div className="absolute right-10 top-6 z-20">
           <NavigationMenu>
-            <NavigationMenuItem className="hidden md:flex">
+            <NavigationMenuItem className="md:flex">
               <NavigationMenuTrigger>
                 <MenuIcon size={30}></MenuIcon>
               </NavigationMenuTrigger>

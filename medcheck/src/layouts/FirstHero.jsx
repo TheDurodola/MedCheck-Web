@@ -15,19 +15,18 @@ export default function FirstHero() {
       </div>
 
       <div className="w-full lg:w-1/2 flex  flex-col items-center lg:items-start text-center lg:text-left border-r-8">
-      
-        <p className="font-bold text-6xl text-slate-800 height-40 leading-relaxed font-sans">
+        <p className="font-bold text-5xl text-slate-800 height-40 leading-relaxed font-sans">
           MedCheck
         </p>
-        
+
         <p className="mt-4 font-medium text-slate-700 ">
           Your trusted partner in the drug industry.
         </p>
         <p className="mt-7 text-slate-600 leading-relaxed max-w-lg">
           Here at MedCheck, we prioritize your health and well-being with
-          innovative solutions designed to ensure that you received authentic drugs only.
+          innovative solutions designed to ensure that you received authentic
+          drugs only.
         </p>
-  
       </div>
     </section>
   );
