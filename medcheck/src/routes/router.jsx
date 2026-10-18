@@ -3,6 +3,7 @@ import ConsumerDashboard from "@/pages/ConsumerDashboard";
 import InvestigatorDashboard from "@/pages/InvestigatorDashboard";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/NotFound";
+import ManufacturerDashboard from "@/pages/ManufacturerDashboard";
 import RetailerDashboard from "@/pages/RetailerDashboard";
 import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
@@ -30,6 +31,10 @@ const router = createBrowserRouter([
     {
         path: "/dashboard/admin",
         element: <AdminDashboard />,
+    },
+    {
+        path: "/dashboard/manufacturer",
+        element: <ManufacturerDashboard />,
     },
     {
         path: "/dashboard/consumer",
