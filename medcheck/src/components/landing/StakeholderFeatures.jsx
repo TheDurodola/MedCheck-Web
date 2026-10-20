@@ -26,9 +26,7 @@ export default function StakeholderFeatures() {
       <div className="max-w-[1280px] mx-auto px-6 space-y-[clamp(4rem,8vw,8rem)]">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto">
-          <span className="tech-mono text-xs font-semibold text-[#0208F9] bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 uppercase tracking-wider">
-            End-to-End Supply Chain Protection
-          </span>
+          
           <h2 className="mt-3 text-[2.25rem] font-bold tracking-[-0.03em] leading-tight text-slate-900">
             Purpose-Built for Every Pharmaceutical Stakeholder
           </h2>
@@ -82,9 +80,6 @@ export default function StakeholderFeatures() {
                   alt="Pharmaceutical Manufacturing Laboratory"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm tech-mono text-xs font-semibold text-slate-900">
-                  STATUS // CERTIFIED BATCH
-                </div>
               </div>
             </Card>
           </div>
@@ -100,9 +95,6 @@ export default function StakeholderFeatures() {
                   alt="Wholesale Medical Logistics and Distribution"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm tech-mono text-xs font-semibold text-[#0208F9]">
-                  DEPOT // TRANSIT VERIFIED
-                </div>
               </div>
             </Card>
           </div>
@@ -188,12 +180,6 @@ export default function StakeholderFeatures() {
                   alt="Licensed Dispensing Pharmacist"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
-                <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-semibold text-slate-900">
-                    DISPENSE AUTHORIZATION // GRANTED
-                  </span>
-                </div>
               </div>
             </Card>
           </div>
@@ -209,9 +195,6 @@ export default function StakeholderFeatures() {
                   alt="Healthcare Clinical Team and Regulatory Inspectors"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm tech-mono text-xs font-semibold text-slate-900">
-                  FIELD MONITORING // LIVE
-                </div>
               </div>
             </Card>
           </div>

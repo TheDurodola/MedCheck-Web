@@ -85,17 +85,7 @@ export default function NavigationBar() {
           to="/home"
           className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0208F9] rounded-xl"
         >
-          <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-blue-50 border border-blue-100 flex items-center justify-center p-1.5 transition-transform duration-200 ease-out group-hover:scale-105">
-            <img
-              src="/logo.png"
-              alt="MedCheck Logo"
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-            <ShieldCheck className="w-5 h-5 text-[#0208F9] absolute" />
-          </div>
+      
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold tracking-[-0.05em] text-[#0f172a]">
@@ -143,9 +133,6 @@ export default function NavigationBar() {
             className="px-3.5 py-2 rounded-xl text-sm font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200 ease-out flex items-center gap-1.5"
           >
             <span>Whistleblower Bounty</span>
-            <span className="tech-mono text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
-              REWARD
-            </span>
           </a>
 
           {/* Portals Dropdown */}

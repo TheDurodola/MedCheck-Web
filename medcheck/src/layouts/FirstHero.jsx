@@ -105,38 +105,6 @@ export default function FirstHero() {
                   className="w-full h-[360px] sm:h-[440px] lg:h-[480px] object-cover object-center transition-transform duration-500 hover:scale-[1.02]"
                 />
               </picture>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-
-              {/* Floating Live Verification Badge */}
-              <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-white/95 backdrop-blur-md text-slate-900 border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.15)] flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900 tracking-tight">
-                        AUTHENTIC PRODUCT
-                      </span>
-                      <span className="tech-mono text-[10px] font-semibold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
-                        VERIFIED
-                      </span>
-                    </div>
-                    <p className="tech-mono text-[11px] text-slate-500 mt-0.5">
-                      LOT: 2026-MC-90812 • NAFDAC #04-8911
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right hidden sm:block">
-                  <span className="tech-mono text-[10px] text-slate-400 uppercase block">
-                    Chain Status
-                  </span>
-                  <span className="tech-mono text-xs font-semibold text-[#0208F9]">
-                    SECURE (100%)
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

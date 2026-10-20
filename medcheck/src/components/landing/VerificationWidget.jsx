@@ -74,10 +74,7 @@ export default function VerificationWidget() {
     >
       <div className="max-w-[1280px] mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 border border-blue-100 text-[#0208F9] text-xs font-semibold uppercase tracking-wider tech-mono mb-3">
-            <ShieldCheck className="w-4 h-4" />
-            <span>Instant Verification Engine</span>
-          </div>
+         
           <h2 className="text-[2.25rem] font-bold tracking-[-0.03em] leading-tight text-slate-900">
             Verify Your Medication Authenticity
           </h2>

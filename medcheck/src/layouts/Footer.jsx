@@ -8,9 +8,6 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#0208F9] flex items-center justify-center text-white font-bold">
-                MC
-              </div>
               <span className="text-lg font-bold text-white tracking-tight">MedCheck</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
@@ -69,12 +66,8 @@ export default function Footer() {
               Project Information
             </h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Initiative by Durodola Abolaji Toliat to eliminate counterfeit pharmaceuticals and protect patient lives worldwide.
+              Initiative by Durodola Abolaji Toliat and Akintayo Olamide to eliminate counterfeit pharmaceuticals and protect patient lives worldwide.
             </p>
-            <div className="mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded bg-slate-800 text-blue-400 text-[11px] tech-mono border border-slate-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>SYSTEM HEALTH // OPTIMAL</span>
-            </div>
           </div>
         </div>
 

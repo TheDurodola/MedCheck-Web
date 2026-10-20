@@ -39,10 +39,10 @@ export default function FounderMission() {
 
             <div className="pt-4 flex flex-col items-center">
               <p className="text-base font-bold tracking-tight text-white">
-                Durodola Abolaji Toliat
+                Akintayo Olamide
               </p>
               <p className="tech-mono text-xs text-blue-200 uppercase tracking-wider mt-0.5">
-                Founder & Lead Innovator // MedCheck Project
+                Co-Founder // MedCheck Project
               </p>
             </div>
           </div>

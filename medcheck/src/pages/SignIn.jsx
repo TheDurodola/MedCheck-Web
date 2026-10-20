@@ -148,42 +148,7 @@ export default function SignIn() {
                 </Button>
               </form>
 
-              {/* Quick Test Demo Credentials */}
-              <div className="mt-6 pt-5 border-t border-slate-100">
-                <span className="tech-mono text-[11px] font-semibold text-slate-400 uppercase tracking-wider block text-center mb-2.5">
-                  Instant Test Environments
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("consumer")}
-                    className="tech-mono text-[11px] p-2 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-[#0208F9] text-slate-700 transition-colors text-left"
-                  >
-                    ⚡ Test Consumer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("retailer")}
-                    className="tech-mono text-[11px] p-2 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-[#0208F9] text-slate-700 transition-colors text-left"
-                  >
-                    ⚡ Test Pharmacy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("wholesaler")}
-                    className="tech-mono text-[11px] p-2 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-[#0208F9] text-slate-700 transition-colors text-left"
-                  >
-                    ⚡ Test Wholesaler
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("investigator")}
-                    className="tech-mono text-[11px] p-2 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-[#0208F9] text-slate-700 transition-colors text-left"
-                  >
-                    ⚡ Test Investigator
-                  </button>
-                </div>
-              </div>
+              
 
               <div className="mt-6 text-center text-xs text-slate-600">
                 New to MedCheck?{" "}
