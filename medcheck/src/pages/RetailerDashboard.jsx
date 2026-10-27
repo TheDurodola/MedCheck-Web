@@ -17,6 +17,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import VerificationTypeSelect from "@/components/common/VerificationTypeSelect"
+import { verifyMedicine } from "@/services/verificationService"
 
 const RECENT_DISPENSES = [
   {
@@ -61,44 +63,50 @@ export default function RetailerDashboard() {
   const [dispenses, setDispenses] = React.useState(RECENT_DISPENSES)
   const [packSerial, setPackSerial] = React.useState("")
   const [patientName, setPatientName] = React.useState("")
+  const [verificationType, setVerificationType] = React.useState("pack")
   const [verificationFeedback, setVerificationFeedback] = React.useState(null)
   const [isProcessing, setIsProcessing] = React.useState(false)
 
-  const handleDispenseScan = (e) => {
+  const handleDispenseScan = async (e) => {
     e.preventDefault()
     if (!packSerial.trim()) return
 
     setIsProcessing(true)
-    setTimeout(() => {
-      setIsProcessing(false)
-      const isSuspect = packSerial.toLowerCase().includes("fake") || packSerial.toLowerCase().includes("bad")
+    setVerificationFeedback(null)
 
-      if (isSuspect) {
-        setVerificationFeedback({
-          success: false,
-          title: "COUNTERFEIT ALERT: Medication Blocked",
-          message: `Serial ${packSerial} does not match cryptographic root. Handoff locked. Incident reported to regulatory database.`,
-        })
-      } else {
-        const newRecord = {
-          rxId: `DISP-2026-${Math.floor(100 + Math.random() * 900)}`,
-          patientName: patientName || "Walk-in Patient",
-          drugName: "Verified Pharmaceutical Pack",
-          lotNumber: packSerial.toUpperCase(),
-          status: "AUTHENTIC_DISPENSED",
-          pharmacist: "Pharm. Current Terminal",
-          time: "Just now",
-        }
-        setDispenses([newRecord, ...dispenses])
-        setVerificationFeedback({
-          success: true,
-          title: "AUTHENTICITY CONFIRMED",
-          message: `Package ${packSerial} validated against manufacturer registry. Safe for patient dispense.`,
-        })
-        setPackSerial("")
-        setPatientName("")
+    try {
+      const result = await verifyMedicine({
+        type: verificationType,
+        code: packSerial.trim(),
+      })
+
+      const newRecord = {
+        rxId: `DISP-2026-${Math.floor(100 + Math.random() * 900)}`,
+        patientName: patientName || "Walk-in Patient",
+        drugName: result.name || "Verified Pharmaceutical Product",
+        lotNumber: result.lot || packSerial.toUpperCase(),
+        status: "AUTHENTIC_DISPENSED",
+        pharmacist: "Pharm. Current Terminal",
+        time: "Just now",
       }
-    }, 300)
+      setDispenses([newRecord, ...dispenses])
+      setVerificationFeedback({
+        success: true,
+        title: `AUTHENTICITY CONFIRMED [${verificationType.toUpperCase()}]`,
+        message: `${result.name || "Medication"} (${packSerial}) validated against ledger (${result.manufacturer}). Safe for patient dispense.`,
+      })
+      setPackSerial("")
+      setPatientName("")
+    } catch (err) {
+      console.warn("[RetailerDashboard] Verification error:", err.message)
+      setVerificationFeedback({
+        success: false,
+        title: "VERIFICATION FAILED: Dispense Blocked",
+        message: err.message || `Code ${packSerial} could not be validated. Handoff locked.`,
+      })
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -208,10 +216,16 @@ export default function RetailerDashboard() {
 
           <CardContent className="p-0 pt-2">
             <form onSubmit={handleDispenseScan} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <VerificationTypeSelect
+                    value={verificationType}
+                    onChange={(newType) => setVerificationType(newType)}
+                  />
+                </div>
                 <Input
                   label="Scan Serial / Barcode ID"
-                  placeholder="e.g. LOT-NL-2026-881 or MC-89241-NG"
+                  placeholder="e.g. PAOPzHy7Hp1dIHE8 or LOT-NL-2026-881"
                   value={packSerial}
                   onChange={(e) => setPackSerial(e.target.value)}
                   className="tech-mono"

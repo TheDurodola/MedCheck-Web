@@ -6,6 +6,7 @@ import {
   Search,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Clock,
   MapPin,
   FileWarning,
@@ -18,6 +19,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import VerificationTypeSelect from "@/components/common/VerificationTypeSelect"
+import { verifyMedicine } from "@/services/verificationService"
 
 const SAMPLE_VERIFICATIONS = [
   {
@@ -49,23 +52,41 @@ const SAMPLE_VERIFICATIONS = [
 export default function ConsumerDashboard() {
   const [history, setHistory] = React.useState(SAMPLE_VERIFICATIONS)
   const [code, setCode] = React.useState("")
+  const [verificationType, setVerificationType] = React.useState("pack")
+  const [isVerifying, setIsVerifying] = React.useState(false)
+  const [errorMessage, setErrorMessage] = React.useState("")
   const [scanResult, setScanResult] = React.useState(null)
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault()
     if (!code.trim()) return
 
-    const newScan = {
-      code: code.trim().toUpperCase(),
-      drug: "Authenticated Drug Pack",
-      manufacturer: "Verified Pharmaceutical Partner",
-      date: "Just now",
-      status: "AUTHENTIC",
-      pharmacy: "Direct Verification",
+    setIsVerifying(true)
+    setErrorMessage("")
+
+    try {
+      const result = await verifyMedicine({
+        type: verificationType,
+        code: code.trim(),
+      })
+      const newScan = {
+        code: result.lot || code.trim().toUpperCase(),
+        drug: result.name || "Authenticated Drug",
+        manufacturer: result.manufacturer || "Verified Partner",
+        date: "Just now",
+        status: result.status || "AUTHENTIC",
+        pharmacy: `Direct ${verificationType.toUpperCase()} Verification`,
+      }
+      setHistory([newScan, ...history])
+      setScanResult({ ...newScan, raw: result })
+      setCode("")
+    } catch (err) {
+      console.warn("[ConsumerDashboard] Verification error:", err.message)
+      setErrorMessage(err.message || "Failed to verify code. Please check your network and role.")
+      setScanResult(null)
+    } finally {
+      setIsVerifying(false)
     }
-    setHistory([newScan, ...history])
-    setScanResult(newScan)
-    setCode("")
   }
 
   return (
@@ -106,12 +127,8 @@ export default function ConsumerDashboard() {
         </div>
 
         {/* Whistleblower Bounty Banner */}
-        <div className="p-6 rounded-xl bg-gradient-to-r from-blue-950 via-[#0208F9] to-blue-900 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-[0_4px_20px_rgba(2,8,249,0.18)] border border-white/10">
+        <div className="p-6 rounded-xl bg-[#0208F9] text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-[0_4px_20px_rgba(2,8,249,0.18)] border border-white/10">
           <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-lg bg-white/10 border border-white/20 tech-mono text-[10px] text-blue-100 uppercase font-semibold">
-              <Award className="w-3.5 h-3.5 text-amber-300" />
-              <span>Public Protection Bounty Program</span>
-            </div>
             <h3 className="text-xl font-bold tracking-tight text-white">
               Earn Rewards for Reporting Organizations Selling Fake Drugs
             </h3>
@@ -143,20 +160,43 @@ export default function ConsumerDashboard() {
           </CardHeader>
 
           <CardContent className="p-0 pt-2">
-            <form onSubmit={handleVerify} className="flex flex-col sm:flex-row gap-3 items-end">
-              <div className="flex-1 w-full">
-                <Input
-                  label="Enter Scratch or Barcode Serial Number"
-                  placeholder="e.g. MC-89241-NG"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="tech-mono text-base uppercase"
-                />
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                <div className="sm:col-span-4">
+                  <VerificationTypeSelect
+                    value={verificationType}
+                    onChange={(newType) => setVerificationType(newType)}
+                  />
+                </div>
+                <div className="sm:col-span-8 flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1 w-full">
+                    <Input
+                      label="Scratch Code or Serial Number"
+                      placeholder="e.g. PAOPzHy7Hp1dIHE8 or MC-89241-NG"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      className="tech-mono text-base uppercase"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    variant="default"
+                    size="default"
+                    disabled={isVerifying}
+                    className="shrink-0 w-full sm:w-auto"
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>{isVerifying ? "Verifying..." : "Verify Medication"}</span>
+                  </Button>
+                </div>
               </div>
-              <Button type="submit" variant="default" size="default" className="shrink-0 mb-4 sm:mb-0">
-                <Search className="w-4 h-4" />
-                <span>Verify Medication</span>
-              </Button>
+
+              {errorMessage && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
             </form>
 
             {scanResult && (
@@ -237,37 +277,7 @@ export default function ConsumerDashboard() {
 
         {/* Verified Pharmacies Directory */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-[#0208F9]" />
-              <span>Certified Pharmacies in Your Area</span>
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              All pharmacies below operate verified MedCheck authentication terminals
-            </p>
-            <div className="space-y-3">
-              {[
-                { name: "Apex Care Pharmacy", location: "14 Awolowo Way, Ikeja", dist: "0.8 km", rating: "Verified" },
-                { name: "HealthPlus Dispensary", location: "Adetokunbo Ademola, VI", dist: "2.4 km", rating: "Verified" },
-                { name: "MedPlus Pharmacy", location: "Commercial Ave, Yaba", dist: "3.1 km", rating: "Verified" },
-              ].map((p, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
-                  <div>
-                    <span className="font-semibold text-slate-900 block">{p.name}</span>
-                    <span className="text-slate-500">{p.location}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="tech-mono font-semibold text-[#0208F9] block">{p.dist}</span>
-                    <span className="tech-mono text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded font-medium">
-                      {p.rating}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-white border-blue-200">
+          <Card className="p-6 bg-blue-50/50 border-blue-200">
             <h3 className="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-[#0208F9]" />
               <span>How MedCheck Protects You</span>

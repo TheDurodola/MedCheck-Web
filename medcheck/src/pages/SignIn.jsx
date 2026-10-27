@@ -1,41 +1,49 @@
 import * as React from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import {
   ShieldCheck,
-  Lock,
-  Mail,
   ArrowRight,
-  Building2,
-  Store,
-  Factory,
-  SearchCheck,
-  UserCheck,
 } from "lucide-react"
 import { NavigationBar } from "@/layouts"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-
-const ROLE_REDIRECTS = {
-  consumer: "/dashboard/consumer",
-  retailer: "/dashboard/retailer",
-  wholesaler: "/dashboard/wholesaler",
-  manufacturer: "/dashboard/admin",
-  investigator: "/dashboard/investigator",
-}
+import { useAuth, signIn, getDashboardPath } from "@/features/authentication"
 
 export default function SignIn() {
   const navigate = useNavigate()
-  const [email, setEmail] = React.useState("")
+  const location = useLocation()
+  const { login, isAuthenticated, authority } = useAuth()
+
+  // Prevent redirect loops: only honor "from" if it isn't /signin
+  const rawFrom = location.state?.from?.pathname
+  const from = rawFrom && rawFrom !== "/signin" ? rawFrom : null
+
+  const [username, setUsername] = React.useState("")
   const [password, setPassword] = React.useState("")
-  const [selectedRole, setSelectedRole] = React.useState("consumer")
   const [error, setError] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
 
-  const handleSubmit = (e) => {
+  // Log on mount to verify browser console visibility
+  React.useEffect(() => {
+    console.log("[SignIn] Mounted. Current auth state:", { isAuthenticated, authority, from })
+  }, [isAuthenticated, authority, from])
+
+  // If already authenticated on arrival, redirect directly
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      const destination = from || getDashboardPath(authority)
+      console.log("[SignIn] User is already authenticated. Navigating to:", destination)
+      navigate(destination, { replace: true })
+    }
+  }, [isAuthenticated, authority, from, navigate])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!email) {
-      setError("Please enter your email address")
+    console.log("[SignIn] Form submitted with username:", username, "| password provided:", !!password)
+
+    if (!username.trim()) {
+      setError("Please enter your username")
       return
     }
     if (!password) {
@@ -45,21 +53,27 @@ export default function SignIn() {
 
     setIsLoading(true)
     setError("")
-    setTimeout(() => {
-      setIsLoading(false)
-      navigate(ROLE_REDIRECTS[selectedRole] || "/home")
-    }, 400)
-  }
 
-  const handleQuickLogin = (role) => {
-    setSelectedRole(role)
-    setEmail(`${role}@medcheck.org`)
-    setPassword("••••••••")
-    setIsLoading(true)
-    setTimeout(() => {
+    try {
+      console.log("[SignIn] Calling signIn API...")
+      const data = await signIn({ username: username.trim(), password })
+      console.log("[SignIn] Sign in successful. Received payload:", data)
+
+      // Store in AuthContext + localStorage
+      const session = login(data)
+
+      // Resolve destination
+      const destination = from || getDashboardPath(session.authority)
+      console.log("[SignIn] Redirecting authenticated user to:", destination)
+
+      // Direct navigation
+      navigate(destination, { replace: true })
+    } catch (err) {
+      console.error("[SignIn] Error during sign in:", err)
+      setError(err.message || "Sign in failed. Please try again.")
+    } finally {
       setIsLoading(false)
-      navigate(ROLE_REDIRECTS[role])
-    }, 300)
+    }
   }
 
   return (
@@ -68,7 +82,6 @@ export default function SignIn() {
 
       <main className="flex-1 flex items-center justify-center py-12 px-6">
         <div className="w-full max-w-[480px]">
-          {/* Card conforming to Design.md: 12px rounded, 1px border, subtle shadow */}
           <Card className="p-2 sm:p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-slate-200">
             <CardHeader className="text-center pb-6">
               <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-[#0208F9] flex items-center justify-center mx-auto mb-3">
@@ -84,23 +97,27 @@ export default function SignIn() {
 
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Email Input */}
+                {/* Username Input */}
                 <Input
-                  label="Email Address"
-                  type="email"
-                  placeholder="name@organization.com"
-                  value={email}
+                  label="Username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="e.g. johndoe"
+                  value={username}
                   onChange={(e) => {
-                    setEmail(e.target.value)
+                    setUsername(e.target.value)
                     if (error) setError("")
                   }}
-                  error={error && !email ? error : undefined}
+                  error={error && !username.trim() ? error : undefined}
                 />
 
                 {/* Password Input */}
                 <Input
                   label="Password"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
                   placeholder="Enter your security passkey"
                   value={password}
                   onChange={(e) => {
@@ -110,7 +127,8 @@ export default function SignIn() {
                   error={error && !password ? error : undefined}
                 />
 
-                {error && email && password && (
+                {/* General error (both fields filled but API returned error) */}
+                {error && username.trim() && password && (
                   <p className="text-xs text-red-600 font-medium">{error}</p>
                 )}
 
@@ -147,8 +165,6 @@ export default function SignIn() {
                   <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>
               </form>
-
-              
 
               <div className="mt-6 text-center text-xs text-slate-600">
                 New to MedCheck?{" "}

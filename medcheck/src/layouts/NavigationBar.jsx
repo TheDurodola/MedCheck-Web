@@ -11,8 +11,11 @@ import {
   UserCheck,
   ChevronDown,
   ArrowRight,
+  LayoutDashboard,
+  LogOut,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth, getDashboardPath } from "@/features/authentication"
 
 const PORTALS = [
   {
@@ -57,6 +60,8 @@ export default function NavigationBar() {
   const [portalDropdownOpen, setPortalDropdownOpen] = React.useState(false)
   const location = useLocation()
   const dropdownRef = React.useRef(null)
+  const { isAuthenticated, authority, logout } = useAuth()
+  const dashboardHref = getDashboardPath(authority)
 
   // Close dropdown on click outside
   React.useEffect(() => {
@@ -121,12 +126,12 @@ export default function NavigationBar() {
             Mission
           </a>
 
-          <a
-            href="/home#verify"
+          <Link
+            to={isAuthenticated ? dashboardHref : "/signin"}
             className="px-3.5 py-2 rounded-xl text-sm font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200 ease-out"
           >
             Verify Drug
-          </a>
+          </Link>
 
           <a
             href="/home#whistleblower"
@@ -204,18 +209,40 @@ export default function NavigationBar() {
           </div>
         </div>
 
-        {/* Action Buttons (Sign In / Sign Up) */}
+        {/* Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/signin">Sign In</Link>
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link to={dashboardHref} className="flex items-center gap-1.5">
+                  <LayoutDashboard className="w-3.5 h-3.5 text-[#0208F9]" />
+                  <span>Dashboard</span>
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-slate-600 hover:text-red-600 hover:bg-red-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/signin">Sign In</Link>
+              </Button>
 
-          <Button asChild variant="default" size="sm">
-            <Link to="/signup" className="flex items-center gap-1.5">
-              <span>Sign Up</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </Button>
+              <Button asChild variant="default" size="sm">
+                <Link to="/signup" className="flex items-center gap-1.5">
+                  <span>Sign Up</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -252,13 +279,13 @@ export default function NavigationBar() {
             >
               Mission
             </a>
-            <a
-              href="/home#verify"
+            <Link
+              to={isAuthenticated ? dashboardHref : "/signin"}
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               Verify Drug
-            </a>
+            </Link>
             <a
               href="/home#whistleblower"
               onClick={() => setMobileMenuOpen(false)}
@@ -290,16 +317,45 @@ export default function NavigationBar() {
             </div>
 
             <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
-              <Button asChild variant="outline" size="default" className="w-full justify-center">
-                <Link to="/signin" onClick={() => setMobileMenuOpen(false)}>
-                  Sign In
-                </Link>
-              </Button>
-              <Button asChild variant="default" size="default" className="w-full justify-center">
-                <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
-                  Sign Up
-                </Link>
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button asChild variant="default" size="default" className="w-full justify-center">
+                    <Link
+                      to={dashboardHref}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span>Go to Dashboard</span>
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={() => {
+                      logout()
+                      setMobileMenuOpen(false)
+                    }}
+                    className="w-full justify-center text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    <span>Sign Out</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild variant="outline" size="default" className="w-full justify-center">
+                    <Link to="/signin" onClick={() => setMobileMenuOpen(false)}>
+                      Sign In
+                    </Link>
+                  </Button>
+                  <Button asChild variant="default" size="default" className="w-full justify-center">
+                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                      Sign Up
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

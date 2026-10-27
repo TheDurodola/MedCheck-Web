@@ -1,17 +1,16 @@
 import * as React from "react"
+import { Link } from "react-router-dom"
 import { ShieldCheck, CheckCircle2, Lock, ArrowRight, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth, getDashboardPath } from "@/features/authentication"
 import heroImage from "@/assets/images/two-african-american-pharmacist-working-drugstore-hospital-pharmacy-african-healthcare.jpg"
 
 export default function FirstHero() {
+  const { isAuthenticated, authority } = useAuth()
+  const verifyDestination = isAuthenticated ? getDashboardPath(authority) : "/signin"
+
   return (
     <section className="relative w-full bg-[#0208F9] text-white min-h-[100dvh] flex items-center justify-center py-[clamp(4rem,8vw,8rem)] overflow-hidden">
-      {/* Subtle geometric surface lines */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:4rem_4rem]"
-        aria-hidden="true"
-      />
-
       <div className="relative max-w-[1280px] w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
         {/* Left Column: Split-Screen Text Left */}
         <div className="lg:col-span-7 flex flex-col items-start text-left space-y-6">
@@ -42,11 +41,11 @@ export default function FirstHero() {
               size="lg"
               className="text-base font-semibold"
             >
-              <a href="#verify" className="flex items-center gap-2">
+              <Link to={verifyDestination} className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-[#0208F9]" />
                 <span>Verify Medication</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
-              </a>
+              </Link>
             </Button>
 
             <Button

@@ -8,54 +8,62 @@ import RetailerDashboard from "@/pages/RetailerDashboard";
 import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
 import WholesalerDashboard from "@/pages/WholesalerDashboard";
-import {createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
+import { ProtectedRoute } from "@/features/authentication";
 
+/** Wraps a page element in ProtectedRoute */
+const protect = (element) => <ProtectedRoute>{element}</ProtectedRoute>;
 
 const router = createBrowserRouter([
-    {
-        path: "/",
-        element: <Landing />,
-    },
-     {
-        path: "/home",
-        element: <Landing />,
-    },
-    {
-        path: "/signin",
-        element: <SignIn />,
-    },
-    {
-        path: "/signup",
-        element: <SignUp />,
-    },
-    {
-        path: "/dashboard/admin",
-        element: <AdminDashboard />,
-    },
-    {
-        path: "/dashboard/manufacturer",
-        element: <ManufacturerDashboard />,
-    },
-    {
-        path: "/dashboard/consumer",
-        element: <ConsumerDashboard />,
-    },
-    {
-        path: "/dashboard/wholesaler",
-        element: <WholesalerDashboard />,
-    },
-    {
-        path: "/dashboard/investigator",
-        element: <InvestigatorDashboard />,
-    },
-    {
-        path: "/dashboard/retailer",
-        element: <RetailerDashboard />,
-    },
-    {
-        path: "/*",
-        element: <NotFound />,
-    },
-])
+  // ── Public routes ──────────────────────────────────────────
+  {
+    path: "/",
+    element: <Landing />,
+  },
+  {
+    path: "/home",
+    element: <Landing />,
+  },
+  {
+    path: "/signin",
+    element: <SignIn />,
+  },
+  {
+    path: "/signup",
+    element: <SignUp />,
+  },
+
+  // ── Protected dashboard routes ──────────────────────────────
+  {
+    path: "/dashboard/admin",
+    element: protect(<AdminDashboard />),
+  },
+  {
+    path: "/dashboard/manufacturer",
+    element: protect(<ManufacturerDashboard />),
+  },
+  {
+    path: "/dashboard/consumer",
+    element: protect(<ConsumerDashboard />),
+  },
+  {
+    path: "/dashboard/wholesaler",
+    element: protect(<WholesalerDashboard />),
+  },
+  {
+    path: "/dashboard/investigator",
+    element: protect(<InvestigatorDashboard />),
+  },
+  {
+    path: "/dashboard/retailer",
+    element: protect(<RetailerDashboard />),
+  },
+
+  // ── Fallback ────────────────────────────────────────────────
+  {
+    path: "/*",
+    element: <NotFound />,
+  },
+]);
 
 export default router;

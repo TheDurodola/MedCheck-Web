@@ -17,6 +17,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import VerificationTypeSelect from "@/components/common/VerificationTypeSelect"
+import { verifyMedicine } from "@/services/verificationService"
 
 const INITIAL_SHIPMENTS = [
   {
@@ -60,31 +62,49 @@ const INITIAL_SHIPMENTS = [
 export default function WholesalerDashboard() {
   const [shipments, setShipments] = React.useState(INITIAL_SHIPMENTS)
   const [scanCode, setScanCode] = React.useState("")
+  const [verificationType, setVerificationType] = React.useState("batch")
   const [scanResult, setScanResult] = React.useState(null)
+  const [isScanning, setIsScanning] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
-  const handleScanPallet = (e) => {
+  const handleScanPallet = async (e) => {
     e.preventDefault()
     if (!scanCode.trim()) return
 
-    const match = shipments.find(
-      (s) =>
-        s.lot.toLowerCase().includes(scanCode.trim().toLowerCase()) ||
-        s.id.toLowerCase().includes(scanCode.trim().toLowerCase())
-    )
+    setIsScanning(true)
+    setScanResult(null)
 
-    if (match) {
+    try {
+      const result = await verifyMedicine({
+        type: verificationType,
+        code: scanCode.trim(),
+      })
+
+      const newShipment = {
+        id: `SHP-2026-${Math.floor(100 + Math.random() * 900)}`,
+        product: result.name || "Authenticated Consignment",
+        lot: result.lot || scanCode.trim().toUpperCase(),
+        units: "Verified Consignment",
+        manufacturer: result.manufacturer || "Certified Node",
+        status: "RECEIVED_AUTHENTIC",
+        time: "Just now",
+      }
+      setShipments([newShipment, ...shipments])
       setScanResult({
         success: true,
-        message: `Consignment ${match.id} verified. Cryptographic origin confirmed from ${match.manufacturer}.`,
-        details: match,
+        message: `Consignment verified [${verificationType.toUpperCase()}]. Origin validated from ${result.manufacturer}.`,
+        details: newShipment,
       })
-    } else {
+      setScanCode("")
+    } catch (err) {
+      console.warn("[WholesalerDashboard] Consignment scan error:", err.message)
       setScanResult({
         success: false,
-        message: `Unrecognized or unregistered batch identifier: "${scanCode}". Flagged for quarantine inspection.`,
+        message: err.message || `Unrecognized or unauthorized identifier: "${scanCode}". Flagged for quarantine.`,
         details: null,
       })
+    } finally {
+      setIsScanning(false)
     }
   }
 
@@ -206,20 +226,36 @@ export default function WholesalerDashboard() {
           </CardHeader>
 
           <CardContent className="p-0 pt-2">
-            <form onSubmit={handleScanPallet} className="flex flex-col sm:flex-row gap-3 items-end">
-              <div className="flex-1 w-full">
-                <Input
-                  label="Scan Lot or Pallet Barcode"
-                  placeholder="e.g. LOT-2026-AMX-910 or SHP-2026-901"
-                  value={scanCode}
-                  onChange={(e) => setScanCode(e.target.value)}
-                  className="tech-mono text-sm"
-                />
+            <form onSubmit={handleScanPallet} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                <div className="sm:col-span-4">
+                  <VerificationTypeSelect
+                    value={verificationType}
+                    onChange={(newType) => setVerificationType(newType)}
+                  />
+                </div>
+                <div className="sm:col-span-8 flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1 w-full">
+                    <Input
+                      label="Scan Identifier or Barcode"
+                      placeholder="e.g. PAOPzHy7Hp1dIHE8 or LOT-2026-AMX-910"
+                      value={scanCode}
+                      onChange={(e) => setScanCode(e.target.value)}
+                      className="tech-mono text-sm"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    variant="default"
+                    size="default"
+                    disabled={isScanning}
+                    className="shrink-0 w-full sm:w-auto"
+                  >
+                    <ScanBarcode className="w-4 h-4" />
+                    <span>{isScanning ? "Validating..." : "Verify Consignment"}</span>
+                  </Button>
+                </div>
               </div>
-              <Button type="submit" variant="default" size="default" className="shrink-0 mb-4 sm:mb-0">
-                <ScanBarcode className="w-4 h-4" />
-                <span>Verify Consignment</span>
-              </Button>
             </form>
 
             {scanResult && (

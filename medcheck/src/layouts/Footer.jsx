@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Link } from "react-router-dom"
+import { Server, Smartphone, Globe, ExternalLink, Github } from "lucide-react"
 
 export default function Footer() {
   return (
@@ -50,23 +51,54 @@ export default function Footer() {
 
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-white tech-mono mb-3">
-              Security & Standards
+              Open Source Repositories
             </h4>
-            <ul className="space-y-2 text-xs text-slate-400">
-              <li>Whistleblower Protection Escrow</li>
-              <li>GS1 2D DataMatrix Standard</li>
-              <li>NAFDAC Drug Security Compliance</li>
-              <li>Dual-Key Cryptographic Signatures</li>
-              <li>WHO Anti-Counterfeiting Guidelines</li>
+            <ul className="space-y-2.5 text-xs">
+              <li>
+                <a
+                  href="https://github.com/TheDurodola/MedCheck-Server"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+                >
+                  <Server className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>Backend API (Spring Boot)</span>
+                  <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-white ml-auto" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/TheDurodola/Medify-Mobile"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>Mobile App (Flutter)</span>
+                  <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-white ml-auto" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/TheDurodola/MedCheck-Web"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+                >
+                  <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>Web Client (React)</span>
+                  <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-white ml-auto" />
+                </a>
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-white tech-mono mb-3">
-              Project Information
+              Project Leadership
             </h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Initiative by Durodola Abolaji Toliat and Akintayo Olamide to eliminate counterfeit pharmaceuticals and protect patient lives worldwide.
+              Co-founded by <strong>Akintayo Olamide</strong> and <strong>Durodola Abolaji Toliat</strong> to eliminate counterfeit pharmaceuticals and protect patient lives worldwide.
             </p>
           </div>
         </div>
@@ -86,9 +118,9 @@ export default function Footer() {
               SIGN UP
             </Link>
             <span>•</span>
-            <a href="#verify" className="hover:text-slate-300">
+            <Link to="/signin" className="hover:text-slate-300">
               AUTHENTICATE
-            </a>
+            </Link>
           </div>
         </div>
       </div>

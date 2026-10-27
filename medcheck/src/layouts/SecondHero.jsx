@@ -1,5 +1,4 @@
 import * as React from "react"
-import VerificationWidget from "@/components/landing/VerificationWidget"
 import FounderMission from "@/components/landing/FounderMission"
 import StakeholderFeatures from "@/components/landing/StakeholderFeatures"
 import WhistleblowerBounty from "@/components/landing/WhistleblowerBounty"
@@ -8,19 +7,16 @@ import Footer from "@/layouts/Footer"
 export default function SecondHero() {
   return (
     <div className="w-full bg-white text-slate-900">
-      {/* 1. Interactive Drug Verification Widget */}
-      <VerificationWidget />
-
-      {/* 2. Founder's Crisis Statement & Mission */}
+      {/* 1. Founder's Crisis Statement & Mission */}
       <FounderMission />
 
-      {/* 3. Stakeholder Feature Rows (Zig-Zag Alternating Layout) */}
+      {/* 2. Stakeholder Feature Rows (Zig-Zag Alternating Layout) */}
       <StakeholderFeatures />
 
-      {/* 4. Whistleblower Bounty Program & Refactored 4-Step Verification Journey */}
+      {/* 3. Whistleblower Bounty Program & Refactored 4-Step Verification Journey */}
       <WhistleblowerBounty />
 
-      {/* 5. Platform Footer */}
+      {/* 4. Platform Footer */}
       <Footer />
     </div>
   )
