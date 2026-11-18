@@ -8,6 +8,7 @@ import RetailerDashboard from "@/pages/RetailerDashboard";
 import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
 import WholesalerDashboard from "@/pages/WholesalerDashboard";
+import BatchDetails from "@/pages/BatchDetails";
 import { createBrowserRouter } from "react-router-dom";
 import { ProtectedRoute } from "@/features/authentication";
 
@@ -58,6 +59,14 @@ const router = createBrowserRouter([
     path: "/dashboard/retailer",
     element: protect(<RetailerDashboard />),
   },
+  {
+    path: "/batch/:code",
+    element: protect(<BatchDetails />),
+  },
+  {
+    path: "/verification/batch/:code",
+    element: protect(<BatchDetails />),
+  },
 
   // ── Fallback ────────────────────────────────────────────────
   {
@@ -65,5 +74,9 @@ const router = createBrowserRouter([
     element: <NotFound />,
   },
 ]);
+
+if (typeof window !== "undefined") {
+  window.__medcheck_router = router;
+}
 
 export default router;

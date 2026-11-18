@@ -1,16 +1,12 @@
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Store,
   ScanLine,
   CheckCircle2,
   AlertTriangle,
   ShieldAlert,
-  Search,
-  Plus,
-  ArrowRight,
   ShieldCheck,
-  Clock,
-  User,
 } from "lucide-react"
 import { NavigationBar } from "@/layouts"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
@@ -60,6 +56,7 @@ const RECENT_DISPENSES = [
 ]
 
 export default function RetailerDashboard() {
+  const navigate = useNavigate()
   const [dispenses, setDispenses] = React.useState(RECENT_DISPENSES)
   const [packSerial, setPackSerial] = React.useState("")
   const [patientName, setPatientName] = React.useState("")
@@ -75,16 +72,24 @@ export default function RetailerDashboard() {
     setVerificationFeedback(null)
 
     try {
+      const targetCode = packSerial.trim()
       const result = await verifyMedicine({
         type: verificationType,
-        code: packSerial.trim(),
+        code: targetCode,
       })
+
+      if (verificationType === "batch") {
+        navigate(`/batch/${encodeURIComponent(result.lot || targetCode)}`, {
+          state: { batchData: result },
+        })
+        return
+      }
 
       const newRecord = {
         rxId: `DISP-2026-${Math.floor(100 + Math.random() * 900)}`,
         patientName: patientName || "Walk-in Patient",
         drugName: result.name || "Verified Pharmaceutical Product",
-        lotNumber: result.lot || packSerial.toUpperCase(),
+        lotNumber: result.lot || targetCode.toUpperCase(),
         status: "AUTHENTIC_DISPENSED",
         pharmacist: "Pharm. Current Terminal",
         time: "Just now",

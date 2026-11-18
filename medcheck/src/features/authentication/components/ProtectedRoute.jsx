@@ -28,6 +28,14 @@ export default function ProtectedRoute({ children }) {
   const isAuthed = isAuthenticated || hasLocalToken
 
   if (!isAuthed) {
+    // If the user deliberately signed out, redirect to /home instead of /signin
+    const isLoggingOut =
+      typeof window !== "undefined" && sessionStorage.getItem("medcheck_logging_out")
+    if (isLoggingOut) {
+      sessionStorage.removeItem("medcheck_logging_out")
+      return <Navigate to="/home" replace />
+    }
+
     console.warn("[ProtectedRoute] Unauthenticated access to:", location.pathname, "→ Redirecting to /signin")
     return (
       <Navigate

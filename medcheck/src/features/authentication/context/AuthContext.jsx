@@ -40,12 +40,31 @@ export function AuthProvider({ children }) {
     return session
   }, [])
 
-  /** Clears session and token from storage */
+  /** Clears session and JWT token from storage */
   const logout = React.useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem("token")
+      localStorage.removeItem("jwt")
+      localStorage.removeItem("accessToken")
+      sessionStorage.removeItem(STORAGE_KEY)
+      sessionStorage.removeItem("token")
+      sessionStorage.removeItem("jwt")
+    } catch (e) {
+      console.warn("[AuthContext] Error removing storage keys:", e)
+    }
     setAuth(null)
-    console.log("[AuthContext] User logged out")
+    console.log("[AuthContext] User logged out, JWT token erased")
   }, [])
+
+  // Listen to 401/403 unauthorized events to reset state immediately
+  React.useEffect(() => {
+    const onUnauthorized = () => {
+      logout()
+    }
+    window.addEventListener("medcheck:unauthorized", onUnauthorized)
+    return () => window.removeEventListener("medcheck:unauthorized", onUnauthorized)
+  }, [logout])
 
   const value = React.useMemo(
     () => ({

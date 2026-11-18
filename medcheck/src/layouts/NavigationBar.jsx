@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
   Menu,
   X,
@@ -59,9 +59,21 @@ export default function NavigationBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [portalDropdownOpen, setPortalDropdownOpen] = React.useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const dropdownRef = React.useRef(null)
   const { isAuthenticated, authority, logout } = useAuth()
   const dashboardHref = getDashboardPath(authority)
+
+  const handleSignOut = React.useCallback(() => {
+    try {
+      sessionStorage.setItem("medcheck_logging_out", "true")
+    } catch {
+      // ignore
+    }
+    logout()
+    setMobileMenuOpen(false)
+    navigate("/home", { replace: true })
+  }, [logout, navigate])
 
   // Close dropdown on click outside
   React.useEffect(() => {
@@ -222,7 +234,7 @@ export default function NavigationBar() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={logout}
+                onClick={handleSignOut}
                 className="text-slate-600 hover:text-red-600 hover:bg-red-50 flex items-center gap-1.5 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -332,10 +344,7 @@ export default function NavigationBar() {
                   <Button
                     variant="outline"
                     size="default"
-                    onClick={() => {
-                      logout()
-                      setMobileMenuOpen(false)
-                    }}
+                    onClick={handleSignOut}
                     className="w-full justify-center text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 mr-2" />

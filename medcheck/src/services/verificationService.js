@@ -1,4 +1,5 @@
 import { normalizeAuthority } from "@/features/authentication"
+import { handleUnauthorized } from "./apiClient"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
 
@@ -79,14 +80,9 @@ export async function verifyMedicine({ type = "pack", code, token }) {
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({}))
     if (res.status === 403 || res.status === 401) {
-      if (cleanType === "batch") {
-        throw new Error(
-          errorBody?.message ||
-            "Access denied: Batch verification requires authorized credentials (INVESTIGATOR, MANUFACTURER_EMPLOYEE, RETAIL_EMPLOYEE, or WHOLESALE_EMPLOYEE)."
-        )
-      }
+      handleUnauthorized()
       throw new Error(
-        errorBody?.message || "Unauthorized: Your session has expired or is invalid. Please sign in again."
+        errorBody?.message || "Unauthorized access: Session expired or insufficient permissions. Redirecting to sign in..."
       )
     }
     if (res.status === 404) {
@@ -104,41 +100,63 @@ export async function verifyMedicine({ type = "pack", code, token }) {
 
   const payload = data?.data || data
 
+  const drugDetail = payload?.drugDetail || {}
+  const logisticsHistory = Array.isArray(payload?.logisticsHistory) ? payload.logisticsHistory : []
+
   return {
+    id: payload?.id || null,
     name:
+      drugDetail?.drugBrandName ||
       payload?.productName ||
       payload?.name ||
       payload?.formulation ||
       payload?.medicineName ||
       "Verified Medication",
+    genericName: drugDetail?.genericName || payload?.genericName || "",
+    description: drugDetail?.description || payload?.description || "",
     manufacturer:
+      drugDetail?.manufacturerName ||
       payload?.manufacturer ||
       payload?.manufacturerName ||
       payload?.organisationName ||
       "Licensed Pharmaceutical Node",
     lot:
+      payload?.verificationCode ||
       payload?.lotNumber ||
       payload?.batchNumber ||
       payload?.lot ||
       payload?.batchCode ||
       cleanCode,
+    verificationCode: payload?.verificationCode || cleanCode,
     nafdac:
+      drugDetail?.nafdacRegistrationNumber ||
       payload?.nafdacNumber ||
       payload?.nafdacReg ||
       payload?.nafdac ||
       payload?.regulatoryNumber ||
       "REG-CONFIRMED",
     expiry: payload?.expiryDate || payload?.expiry || payload?.expDate || "N/A",
+    manufactureDate: payload?.manufactureDate || payload?.mfgDate || "N/A",
+    noOfPacks: payload?.noOfPacks ?? null,
+    noOfSachetsPerPack: payload?.noOfSachetsPerPack ?? null,
+    logisticsHistory,
     status:
       payload?.status ||
       (payload?.authentic === false ? "SUSPECT_UNREGISTERED" : "AUTHENTIC"),
     origin:
+      logisticsHistory[0]?.sender ||
+      drugDetail?.manufacturerName ||
       payload?.origin ||
       payload?.productionFacility ||
       payload?.dispatchNode ||
       "Certified Supply Chain",
+    destination:
+      logisticsHistory.length > 0
+        ? logisticsHistory[logisticsHistory.length - 1]?.recipient
+        : null,
     type: cleanType,
     scans: payload?.scanCount || payload?.scans || 1,
+    drugDetail,
     raw: payload,
   }
 }

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import {
   UserCheck,
   ShieldCheck,
@@ -50,6 +50,7 @@ const SAMPLE_VERIFICATIONS = [
 ]
 
 export default function ConsumerDashboard() {
+  const navigate = useNavigate()
   const [history, setHistory] = React.useState(SAMPLE_VERIFICATIONS)
   const [code, setCode] = React.useState("")
   const [verificationType, setVerificationType] = React.useState("pack")
@@ -65,12 +66,21 @@ export default function ConsumerDashboard() {
     setErrorMessage("")
 
     try {
+      const targetCode = code.trim()
       const result = await verifyMedicine({
         type: verificationType,
-        code: code.trim(),
+        code: targetCode,
       })
+
+      if (verificationType === "batch") {
+        navigate(`/batch/${encodeURIComponent(result.lot || targetCode)}`, {
+          state: { batchData: result },
+        })
+        return
+      }
+
       const newScan = {
-        code: result.lot || code.trim().toUpperCase(),
+        code: result.lot || targetCode.toUpperCase(),
         drug: result.name || "Authenticated Drug",
         manufacturer: result.manufacturer || "Verified Partner",
         date: "Just now",
