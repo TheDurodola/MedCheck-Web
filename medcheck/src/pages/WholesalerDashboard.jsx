@@ -9,6 +9,7 @@ import {
   Search,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
   ArrowUpRight,
   ShieldCheck,
   RefreshCw,
@@ -39,6 +40,7 @@ import {
   getAvailableDrugs,
   DEFAULT_DRUGS_DATA,
 } from "@/services/drugService"
+import { transferBatch } from "@/services/distributionService"
 import { useAuth } from "@/features/authentication"
 
 const INITIAL_SHIPMENTS = [
@@ -84,7 +86,10 @@ export default function WholesalerDashboard() {
   const [transferDestination, setTransferDestination] = React.useState("")
   const [transferQuantity, setTransferQuantity] = React.useState("")
   const [transferSuccess, setTransferSuccess] = React.useState("")
+  const [transferError, setTransferError] = React.useState("")
+  const [isTransferring, setIsTransferring] = React.useState(false)
   const [batchSearchQuery, setBatchSearchQuery] = React.useState("")
+  const [transferConfirmationPopup, setTransferConfirmationPopup] = React.useState(null)
 
   // Recipient stakeholder directory states (/api/v1/wholesaler & /api/v1/retailer)
   const [recipientType, setRecipientType] = React.useState("retailer") // "retailer" | "wholesaler"
@@ -275,10 +280,34 @@ export default function WholesalerDashboard() {
       s.id.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleExecuteTransfer = (e) => {
+  const handleExecuteTransfer = async (e) => {
     e.preventDefault()
+    setTransferError("")
+    setTransferSuccess("")
+
     const destination = transferDestination.trim()
-    if (!destination) return
+    if (!destination) {
+      setTransferError("Please select an authorized recipient destination node.")
+      return
+    }
+
+    const batchUuid =
+      selectedBatch?.id || selectedBatch?.batchId || selectedBatch?.UUID || selectedBatchId
+    if (!batchUuid) {
+      setTransferError("Please select a pharmaceutical drug batch to transfer.")
+      return
+    }
+
+    const receiverOrganisationId =
+      selectedRecipientId ||
+      recipientsList.find((r) => formatStakeholderLabel(r) === destination)?.UUID ||
+      recipientsList.find((r) => formatStakeholderLabel(r) === destination)?.id ||
+      ""
+
+    if (!receiverOrganisationId) {
+      setTransferError("Please select a valid receiver organisation.")
+      return
+    }
 
     const drugName = selectedDrug ? selectedDrug.drugBrandName : "Pharmaceutical Consignment"
     const batchIdentifier = selectedBatch
@@ -287,34 +316,72 @@ export default function WholesalerDashboard() {
     const verificationCode = selectedBatch?.verificationCode || ""
     const manufacturer = selectedDrug ? selectedDrug.drugManufacturerName : "Authorized Wholesaler Depot"
     const parsedQty = parseInt(transferQuantity, 10)
-    const validQtyNum = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : (selectedBatch?.noOfPacks || 50)
+    const validQtyNum =
+      transferType === "batch"
+        ? (selectedBatch?.noOfPacks || parsedQty || 50)
+        : (!isNaN(parsedQty) && parsedQty > 0 ? parsedQty : (selectedBatch?.noOfPacks || 50))
     const qty = `${validQtyNum} Packs`
 
-    const newShipment = {
-      id: `SHP-2026-${Math.floor(100 + Math.random() * 900)}`,
-      product: `${drugName} (${qty})`,
-      lot: batchIdentifier,
-      verificationCode: verificationCode,
-      units: qty,
-      manufacturer: manufacturer,
-      destination: destination,
-      recipientType: recipientType.toUpperCase(),
-      status: "VERIFIED_IN_TRANSIT",
-      time: "Just now",
-    }
+    setIsTransferring(true)
 
-    setShipments([newShipment, ...shipments])
-    setTransferSuccess(
-      `Successfully logged custody transfer of ${drugName} (Batch: ${batchIdentifier}) to ${recipientType.toUpperCase()} (${destination}).`
-    )
-    setTimeout(() => {
-      setTransferSuccess("")
+    try {
+      let recordTime = "Just now"
+
+      if (transferType === "batch") {
+        const response = await transferBatch({
+          batchId: batchUuid,
+          receiverOrganisationId,
+          token: activeToken,
+        })
+        if (response?.timestamp) {
+          try {
+            recordTime = new Date(response.timestamp).toLocaleString("en-GB", {
+              dateStyle: "short",
+              timeStyle: "short",
+            })
+          } catch {
+            recordTime = response.timestamp
+          }
+        }
+      }
+
+      const confirmationMsg = `The batch has been successfully transferred to ${destination}`
+
+      const newShipment = {
+        id: `SHP-2026-${Math.floor(100 + Math.random() * 900)}`,
+        product: `${drugName} (${qty})`,
+        lot: batchIdentifier,
+        verificationCode: verificationCode,
+        units: qty,
+        manufacturer: manufacturer,
+        destination: destination,
+        recipientType: recipientType.toUpperCase(),
+        status: "VERIFIED_IN_TRANSIT",
+        time: recordTime,
+      }
+
+      setShipments((prev) => [newShipment, ...prev])
       setIsTransferOpen(false)
+      setTransferSuccess("")
+      setTransferError("")
       setTransferCode("")
       setTransferDestination("")
       setTransferQuantity("")
       setSelectedRecipientId("")
-    }, 1400)
+
+      setTransferConfirmationPopup({
+        message: confirmationMsg,
+        receiverName: destination,
+        batchIdentifier,
+        drugName,
+        quantity: qty,
+      })
+    } catch (err) {
+      console.error("[WholesalerDashboard] Batch transfer error:", err)
+      setTransferError(err.message || "Failed to transfer batch. Please try again.")
+    } finally {
+      setIsTransferring(false)
+    }
   }
 
   const handleExportCSV = () => {
@@ -394,7 +461,11 @@ export default function WholesalerDashboard() {
             <Button
               variant="default"
               size="sm"
-              onClick={() => setIsTransferOpen(true)}
+              onClick={() => {
+                setTransferError("")
+                setTransferSuccess("")
+                setIsTransferOpen(true)
+              }}
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Log Custody Transfer</span>
@@ -427,7 +498,11 @@ export default function WholesalerDashboard() {
               <Button
                 variant="default"
                 className="w-full"
-                onClick={() => setIsTransferOpen(true)}
+                onClick={() => {
+                  setTransferError("")
+                  setTransferSuccess("")
+                  setIsTransferOpen(true)
+                }}
               >
                 <ArrowLeftRight className="w-4 h-4 mr-2" />
                 <span>Transfer Batches & Packs</span>
@@ -574,43 +649,61 @@ export default function WholesalerDashboard() {
         {/* Modal 1: Transfer Batches & Packs */}
         {isTransferOpen && (
           <div
-            className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setIsTransferOpen(false)
+              if (e.target === e.currentTarget && !isTransferring) {
+                setIsTransferOpen(false)
+                setTransferError("")
+                setTransferSuccess("")
+              }
             }}
           >
-            <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 relative my-8 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+            <div className="bg-white rounded-2xl max-w-xl w-full max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col shadow-2xl border border-slate-200 relative my-auto animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+              <div className="flex items-start justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0208F9] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0208F9] flex items-center justify-center shrink-0">
                     <ArrowLeftRight className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">
+                    <h2 className="text-lg font-bold text-slate-900 leading-tight">
                       Transfer Batches & Packs
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Log chain-of-custody handoff to authorized pharmacies and distribution hubs
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsTransferOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                  onClick={() => {
+                    if (!isTransferring) {
+                      setIsTransferOpen(false)
+                      setTransferError("")
+                      setTransferSuccess("")
+                    }
+                  }}
+                  disabled={isTransferring}
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50 shrink-0 ml-2"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {transferSuccess && (
-                <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{transferSuccess}</span>
-                </div>
-              )}
+              <form onSubmit={handleExecuteTransfer} className="flex-1 flex flex-col overflow-hidden min-h-0">
+                <div className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1">
+                  {transferSuccess && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800 font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{transferSuccess}</span>
+                    </div>
+                  )}
 
-              <form onSubmit={handleExecuteTransfer} className="mt-4 space-y-4">
+                  {transferError && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-800 font-medium">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>{transferError}</span>
+                    </div>
+                  )}
                 {/* 1. Recipient Entity Category (Wholesaler vs Retailer) */}
                 <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/90 space-y-3">
                   <div className="flex items-center justify-between">
@@ -916,60 +1009,151 @@ export default function WholesalerDashboard() {
                   </div>
                 </div>
 
-                {/* 5. Quantity / Allocation Units (Separate Row) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-slate-700">
-                      Step 5: Quantity (Numeric Packs)
-                    </label>
-                    {selectedBatch && (
-                      <span className="text-[11px] text-slate-400 tech-mono">
-                        Available: {selectedBatch.noOfPacks} Packs
+                {/* 5. Quantity / Allocation Units (Separate Row - only visible when not Entire Batch) */}
+                {transferType !== "batch" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-slate-700">
+                        Step 5: Quantity (Numeric Packs)
+                      </label>
+                      {selectedBatch && (
+                        <span className="text-[11px] text-slate-400 tech-mono">
+                          Available: {selectedBatch.noOfPacks} Packs
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        min={1}
+                        max={selectedBatch?.noOfPacks || undefined}
+                        placeholder="e.g. 50"
+                        value={transferQuantity}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, "")
+                          setTransferQuantity(val)
+                        }}
+                        onKeyDown={(e) => {
+                          if (["e", "E", "+", "-", "."].includes(e.key)) {
+                            e.preventDefault()
+                          }
+                        }}
+                        className="text-xs tech-mono pr-14"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none select-none">
+                        Packs
                       </span>
-                    )}
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min={1}
-                      max={selectedBatch?.noOfPacks || undefined}
-                      placeholder="e.g. 50"
-                      value={transferQuantity}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, "")
-                        setTransferQuantity(val)
-                      }}
-                      onKeyDown={(e) => {
-                        if (["e", "E", "+", "-", "."].includes(e.key)) {
-                          e.preventDefault()
-                        }
-                      }}
-                      className="text-xs tech-mono pr-14"
-                      required
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none select-none">
-                      Packs
-                    </span>
-                  </div>
-                </div>
+                )}
+              </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsTransferOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="default" size="sm">
-                    <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
-                    <span>Confirm Custody Transfer</span>
-                  </Button>
+              <div className="p-4 sm:px-6 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!isTransferring) {
+                      setIsTransferOpen(false)
+                      setTransferError("")
+                      setTransferSuccess("")
+                    }
+                  }}
+                  disabled={isTransferring}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="default" size="sm" disabled={isTransferring}>
+                  {isTransferring ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                      <span>Transferring Batch...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
+                      <span>Confirm Custody Transfer</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+        {/* Confirmation Message Popup */}
+        {transferConfirmationPopup && (
+          <div
+            className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+            onClick={() => setTransferConfirmationPopup(null)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-center relative animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setTransferConfirmationPopup(null)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                Transfer Confirmed
+              </h3>
+
+              <p className="text-sm text-slate-700 leading-relaxed mb-6">
+                The batch has been successfully transferred to{" "}
+                <span className="font-bold text-slate-950">
+                  {transferConfirmationPopup.receiverName}
+                </span>
+              </p>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-left mb-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tech-mono">
+                    Batch Identifier
+                  </span>
+                  <span className="font-bold text-slate-900 tech-mono">
+                    {transferConfirmationPopup.batchIdentifier}
+                  </span>
                 </div>
-              </form>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tech-mono">
+                    Receiver
+                  </span>
+                  <span className="font-medium text-slate-800 truncate max-w-[200px]">
+                    {transferConfirmationPopup.receiverName}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tech-mono">
+                    Custody Status
+                  </span>
+                  <span className="font-semibold text-emerald-700 tech-mono text-[11px]">
+                    VERIFIED_IN_TRANSIT
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="default"
+                className="w-full bg-[#0208F9] hover:bg-[#0208F9]/90"
+                onClick={() => setTransferConfirmationPopup(null)}
+              >
+                Done
+              </Button>
             </div>
           </div>
         )}
@@ -977,22 +1161,22 @@ export default function WholesalerDashboard() {
         {/* Modal 2: Reports */}
         {isReportsOpen && (
           <div
-            className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
             onClick={(e) => {
               if (e.target === e.currentTarget) setIsReportsOpen(false)
             }}
           >
-            <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 relative my-8 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col shadow-2xl border border-slate-200 relative my-auto animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+              <div className="flex items-start justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">
+                    <h2 className="text-lg font-bold text-slate-900 leading-tight">
                       Wholesale Depot Compliance & Audit Report
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Terminal: Lagos Central Depot Hub #04 • Licensed Distributor Node
                     </p>
                   </div>
@@ -1000,101 +1184,104 @@ export default function WholesalerDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsReportsOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors shrink-0 ml-2"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Compliance & Telemetry Summary */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
-                    Logged Transfers
-                  </span>
-                  <span className="text-xl font-bold text-slate-900 mt-1 block">
-                    {shipments.length}
-                  </span>
-                  <span className="text-[10px] text-emerald-600 font-medium">100% genuine</span>
+              {/* Scrollable Report Body */}
+              <div className="overflow-y-auto p-5 sm:p-6 flex-1 space-y-5">
+                {/* Compliance & Telemetry Summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
+                      Logged Transfers
+                    </span>
+                    <span className="text-xl font-bold text-slate-900 mt-1 block">
+                      {shipments.length}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-medium">100% genuine</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
+                      Depot Batches
+                    </span>
+                    <span className="text-xl font-bold text-slate-900 mt-1 block">
+                      {allFlattenedBatches.length}
+                    </span>
+                    <span className="text-[10px] text-slate-500">Active lots</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
+                      Quarantined
+                    </span>
+                    <span className="text-xl font-bold text-slate-900 mt-1 block">0</span>
+                    <span className="text-[10px] text-emerald-600 font-medium">Clean corridor</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
+                      Audit Status
+                    </span>
+                    <span className="text-xl font-bold text-emerald-700 tech-mono mt-1 block">
+                      PASS
+                    </span>
+                    <span className="text-[10px] text-slate-400 tech-mono">NAFDAC-ALIGNED</span>
+                  </div>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
-                    Depot Batches
-                  </span>
-                  <span className="text-xl font-bold text-slate-900 mt-1 block">
-                    {allFlattenedBatches.length}
-                  </span>
-                  <span className="text-[10px] text-slate-500">Active lots</span>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
-                    Quarantined
-                  </span>
-                  <span className="text-xl font-bold text-slate-900 mt-1 block">0</span>
-                  <span className="text-[10px] text-emerald-600 font-medium">Clean corridor</span>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tech-mono block">
-                    Audit Status
-                  </span>
-                  <span className="text-xl font-bold text-emerald-700 tech-mono mt-1 block">
-                    PASS
-                  </span>
-                  <span className="text-[10px] text-slate-400 tech-mono">NAFDAC-ALIGNED</span>
-                </div>
-              </div>
 
-              {/* Recent Ledger Audit Summary */}
-              <div className="mt-5">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 tech-mono">
-                    Recent Custody Ledger Entries
-                  </h4>
-                  <span className="text-[11px] text-slate-400">
-                    {shipments.length} total records
-                  </span>
-                </div>
-                <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 tech-mono text-[11px]">
-                      <tr>
-                        <th className="p-2.5">ID</th>
-                        <th className="p-2.5">Product & Lot</th>
-                        <th className="p-2.5">Destination</th>
-                        <th className="p-2.5">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {shipments.map((s) => (
-                        <tr key={s.id} className="hover:bg-slate-50/80">
-                          <td className="p-2.5 tech-mono font-semibold text-[#0208F9]">
-                            {s.id}
-                          </td>
-                          <td className="p-2.5">
-                            <span className="font-medium text-slate-900 block truncate max-w-[200px]">
-                              {s.product}
-                            </span>
-                            <span className="text-[10px] tech-mono text-slate-500 block">
-                              {s.lot}
-                            </span>
-                          </td>
-                          <td className="p-2.5 text-slate-600 truncate max-w-[140px]">
-                            {s.destination}
-                          </td>
-                          <td className="p-2.5">
-                            <span className="tech-mono text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700">
-                              {s.status}
-                            </span>
-                          </td>
+                {/* Recent Ledger Audit Summary */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 tech-mono">
+                      Recent Custody Ledger Entries
+                    </h4>
+                    <span className="text-[11px] text-slate-400">
+                      {shipments.length} total records
+                    </span>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 tech-mono text-[11px]">
+                        <tr>
+                          <th className="p-2.5">ID</th>
+                          <th className="p-2.5">Product & Lot</th>
+                          <th className="p-2.5">Destination</th>
+                          <th className="p-2.5">Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {shipments.map((s) => (
+                          <tr key={s.id} className="hover:bg-slate-50/80">
+                            <td className="p-2.5 tech-mono font-semibold text-[#0208F9]">
+                              {s.id}
+                            </td>
+                            <td className="p-2.5">
+                              <span className="font-medium text-slate-900 block truncate max-w-[200px]">
+                                {s.product}
+                              </span>
+                              <span className="text-[10px] tech-mono text-slate-500 block">
+                                {s.lot}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-slate-600 truncate max-w-[140px]">
+                              {s.destination}
+                            </td>
+                            <td className="p-2.5">
+                              <span className="tech-mono text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700">
+                                {s.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
               {/* Report Actions */}
-              <div className="pt-4 mt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="p-4 sm:px-6 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <Button
                     type="button"
@@ -1134,22 +1321,22 @@ export default function WholesalerDashboard() {
         {/* Modal 3: Available Batches with Packs */}
         {isAvailableBatchesOpen && (
           <div
-            className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
             onClick={(e) => {
               if (e.target === e.currentTarget) setIsAvailableBatchesOpen(false)
             }}
           >
-            <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 relative my-8 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col shadow-2xl border border-slate-200 relative my-auto animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+              <div className="flex items-start justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
                     <Boxes className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">
+                    <h2 className="text-lg font-bold text-slate-900 leading-tight">
                       Available Batches with Packs
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Depot stock inventory of verified pharmaceutical lots and serialized unit packs
                     </p>
                   </div>
@@ -1157,24 +1344,27 @@ export default function WholesalerDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsAvailableBatchesOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors shrink-0 ml-2"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Search Bar */}
-              <div className="mt-4">
-                <Input
-                  placeholder="Search available batches, medications, or manufacturers..."
-                  value={batchSearchQuery}
-                  onChange={(e) => setBatchSearchQuery(e.target.value)}
-                  className="text-xs h-9"
-                />
-              </div>
+              {/* Scrollable Inventory List Body */}
+              <div className="overflow-y-auto p-5 sm:p-6 flex-1 space-y-4">
 
-              {/* Batches & Packs List */}
-              <div className="mt-4 max-h-[360px] overflow-y-auto space-y-3 pr-1">
+                {/* Search Bar */}
+                <div>
+                  <Input
+                    placeholder="Search available batches, medications, or manufacturers..."
+                    value={batchSearchQuery}
+                    onChange={(e) => setBatchSearchQuery(e.target.value)}
+                    className="text-xs h-9"
+                  />
+                </div>
+
+                {/* Batches & Packs List */}
+                <div className="space-y-3 pr-1">
                 {filteredAvailableBatches.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-400">
                     No batches found matching "{batchSearchQuery}".
@@ -1211,6 +1401,9 @@ export default function WholesalerDashboard() {
                             setSelectedBatchId(item.id)
                             setTransferCode(item.batchIdentifier)
                             setTransferQuantity(String(item.noOfPacks))
+                            setTransferType("batch")
+                            setTransferError("")
+                            setTransferSuccess("")
                             setIsAvailableBatchesOpen(false)
                             setIsTransferOpen(true)
                           }}
@@ -1258,9 +1451,11 @@ export default function WholesalerDashboard() {
                     </div>
                   ))
                 )}
+                </div>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+              {/* Pinned Modal Footer */}
+              <div className="p-4 sm:px-6 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between shrink-0">
                 <span className="text-xs text-slate-500">
                   Showing {filteredAvailableBatches.length} of {allFlattenedBatches.length} depot batches
                 </span>
